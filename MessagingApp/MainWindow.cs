@@ -8,6 +8,8 @@ namespace MessagingApp
 {
     internal class MainWindow : Form
     {
+        private readonly NetworkBase _network;
+
         private Panel _messageArea;
 
         private TextBox _textBox;
@@ -18,7 +20,7 @@ namespace MessagingApp
 
         private int _newMessagePosition = 0;
 
-        internal MainWindow()
+        internal MainWindow(NetworkBase network)
         {
             ClientSize = new Size(1024, 768);
             MaximumSize = MinimumSize = Size;
@@ -61,6 +63,9 @@ namespace MessagingApp
             _sendButton.Enabled = false;
 
             Controls.Add(_sendButton);
+
+            _network = network;
+            _network.Start(OnMessageReceived);
         }
 
         private void OnTextFocus(object? sender, EventArgs e)
@@ -96,20 +101,32 @@ namespace MessagingApp
             if (sender == null)
                 return;
 
-            RegisterMessage(true, _textBox.Text);
+            RegisterMessage(true, 0, _textBox.Text);
+            _network.SendMessage(_textBox.Text);
             _textBox.Text = "";
         }
 
-        private void RegisterMessage(bool myMessage, string message)
+        private void OnMessageReceived(int senderID, string message)
+        {
+            Invoke(RegisterMessage, false, senderID, message);
+        }
+
+        internal void RegisterMessage(bool myMessage, int senderID, string message)
         {
             Label label = new Label();
 
             if (myMessage)
+            {
                 label.BackColor = Color.LightGreen;
+                label.Text = message;
+            }
             else
+            {
                 label.BackColor = Color.PaleVioletRed;
-            
-            label.Text = message;
+                label.Text = $"({senderID}): {message}";
+
+            }
+
 
             label.MinimumSize = new Size(1000, 0);
             label.MaximumSize = new Size(1000, int.MaxValue);

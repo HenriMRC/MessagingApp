@@ -1,6 +1,9 @@
 {
   "profiles": {
     "MessagingApp": {
+      "commandName": "Project"
+    },
+    "MessagingAppServer": {
       "commandName": "Project",
       "commandLineArgs": "server"
     }

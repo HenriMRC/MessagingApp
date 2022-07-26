@@ -24,10 +24,15 @@ namespace MessagingApp
                 }
             }
 
-            MainWindow mainWindow = new MainWindow();
+            NetworkBase network = isServer ? new Server() : new Client();
 
-            ConnectionWindow connectionWindow = new ConnectionWindow(mainWindow.Close, isServer);
-            connectionWindow.Show(mainWindow);
+            MainWindow mainWindow = new MainWindow(network);
+
+            if (isServer)
+            {
+                /*ConnectionWindow connectionWindow = new ConnectionWindow(mainWindow.Close, isServer);
+                connectionWindow.Show(mainWindow);*/
+            }
 
             Application.Run(mainWindow);
         }
