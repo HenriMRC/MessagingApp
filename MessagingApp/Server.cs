@@ -226,8 +226,8 @@ namespace MessagingApp
                     }
                     else
                     {
-                        _stream.BeginWrite(buffer.ToArray(), 0, buffer.Count, WriteMessageCallbac, buffer);
                         _writing = true;
+                        _stream.BeginWrite(buffer.ToArray(), 0, buffer.Count, WriteMessageCallbac, buffer);
                     }
                 }
             }
