@@ -12,7 +12,7 @@ namespace MessagingApp
 {
     internal class Client : NetworkBase
     {
-        ClientHandler _handler;
+        Handler _handler;
 
         internal override void Start(Action<int, string> onReceiveMessage)
         {
@@ -71,7 +71,8 @@ namespace MessagingApp
                         {
                             TcpClient client = new TcpClient(ip, 5050);
 
-                            _handler = new ClientHandler(0, client.GetStream(), OnMessageRead, OnConnectionLost);
+                            _handler = new Handler(client.GetStream(), OnMessageRead, OnConnectionLost);
+                            _handler.Read();
                         }
                         catch (SocketException exception)
                         {
@@ -89,16 +90,137 @@ namespace MessagingApp
             }
         }
 
-        internal override void SendMessage(string message) => _handler.Write(0, message);
+        internal override void SendMessage(string message) => _handler.Write(message);
 
         private void OnMessageRead(int senderID, string message)
         {
             OnMessageReceived(senderID, message);
         }
 
-        private void OnConnectionLost(int clientID, Exception exception)
+        private void OnConnectionLost(Exception exception)
         {
-            Debug.Print($"Connection lost with ID {clientID}");
+            Debug.Print($"Connection lost with the server.");
+        }
+
+        internal class Handler
+        {
+            private readonly NetworkStream _stream;
+
+            private readonly Action<int, string> _onReadCallback;
+            private readonly Action<Exception> _onConnectionLost;
+
+            private readonly Queue<byte[]> _writeQueue;
+            private readonly object _writeQueueLock;
+            private bool _writing;
+
+            internal Handler(NetworkStream stream, Action<int, string> onReadCallback, Action<Exception> onConnectionLost)
+            {
+                _stream = stream;
+
+                _onReadCallback = onReadCallback;
+                _onConnectionLost = onConnectionLost;
+
+                _writeQueue = new Queue<byte[]>();
+                _writeQueueLock = new object();
+
+                _writing = false;
+            }
+
+            internal void Read()
+            {
+                byte[] buffer = new byte[sizeof(int)];
+                _stream.BeginRead(buffer, 0, buffer.Length, MessageSizeCallback, buffer);
+            }
+
+            private void MessageSizeCallback(IAsyncResult result)
+            {
+                try
+                {
+                    _stream.EndRead(result);
+                    byte[] lenghtBuffer = result.AsyncState as byte[];
+                    int length = BitConverter.ToInt32(lenghtBuffer, 0) + sizeof(int);
+
+                    byte[] buffer = new byte[length];
+                    _stream.BeginRead(buffer, 0, buffer.Length, ReadMessageCallback, buffer);
+                }
+                catch (IOException exception)
+                {
+                    _onConnectionLost.Invoke(exception);
+                }
+            }
+
+            private void ReadMessageCallback(IAsyncResult result)
+            {
+                try
+                {
+                    int length = _stream.EndRead(result);
+
+                    List<byte> buffer = new List<byte>(result.AsyncState as byte[]);
+                    List<byte> idBuffer = buffer.GetRange(0, sizeof(int));
+                    int id = BitConverter.ToInt32(idBuffer.ToArray(), 0);
+
+                    buffer.RemoveRange(0, sizeof(int));
+
+                    string message = Encoding.ASCII.GetString(buffer.ToArray(), 0, buffer.Count);
+
+                    _onReadCallback.Invoke(id, message);
+
+                    Read();
+                }
+                catch (IOException exception)
+                {
+                    _onConnectionLost.Invoke( exception);
+                }
+            }
+
+            internal void Write(string message)
+            {
+                byte[] messageBytes = Encoding.ASCII.GetBytes(message);
+                List<byte> buffer = new List<byte>(sizeof(int) + messageBytes.Length);
+
+                buffer.AddRange(BitConverter.GetBytes(messageBytes.Length));
+                buffer.AddRange(messageBytes);
+
+                lock (_writeQueueLock)
+                {
+                    if (_writing)
+                    {
+                        _writeQueue.Enqueue(buffer.ToArray());
+
+                    }
+                    else
+                    {
+                        _stream.BeginWrite(buffer.ToArray(), 0, buffer.Count, WriteMessageCallbac, buffer);
+                        _writing = true;
+                    }
+                }
+            }
+
+            private void WriteMessageCallbac(IAsyncResult result)
+            {
+                try
+                {
+                    _stream.EndWrite(result);
+                }
+                catch (IOException exception)
+                {
+                    _onConnectionLost.Invoke(exception);
+                }
+                finally
+                {
+                    lock (_writeQueueLock)
+                    {
+
+                        if (_writeQueue.Count > 0)
+                        {
+                            byte[] buffer = _writeQueue.Dequeue();
+                            _stream.BeginWrite(buffer, 0, buffer.Length, WriteMessageCallbac, buffer);
+                        }
+                        else
+                            _writing = false;
+                    }
+                }
+            }
         }
     }
 }
