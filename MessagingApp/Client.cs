@@ -60,11 +60,10 @@ namespace MessagingApp
                         catch (SocketException ex)
                         {
                             name = "?";
-                            throw;
                         }
                         finally
                         {
-                            Console.WriteLine($"{ip} ({name}) is up: ({e.Reply.RoundtripTime} ms). ");
+                            Debug.Write($"{ip} ({name}) is up: ({e.Reply.RoundtripTime} ms). ");
                         }
 
                         try
@@ -161,7 +160,7 @@ namespace MessagingApp
 
                     buffer.RemoveRange(0, sizeof(int));
 
-                    string message = Encoding.ASCII.GetString(buffer.ToArray(), 0, buffer.Count);
+                    string message = Encoder.GetString(buffer.ToArray(), 0, buffer.Count);
 
                     _onReadCallback.Invoke(id, message);
 
@@ -175,7 +174,7 @@ namespace MessagingApp
 
             internal void Write(string message)
             {
-                byte[] messageBytes = Encoding.ASCII.GetBytes(message);
+                byte[] messageBytes = Encoder.GetBytes(message);
                 List<byte> buffer = new List<byte>(sizeof(int) + messageBytes.Length);
 
                 buffer.AddRange(BitConverter.GetBytes(messageBytes.Length));

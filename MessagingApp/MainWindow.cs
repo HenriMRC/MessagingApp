@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 
 namespace MessagingApp
 {
@@ -13,8 +10,6 @@ namespace MessagingApp
         private Panel _messageArea;
 
         private TextBox _textBox;
-
-        private Label _textBoxLabel;
 
         private Button _sendButton;
 
@@ -42,23 +37,19 @@ namespace MessagingApp
             _textBox.BackColor = Color.White;
             _textBox.Multiline = true;
             _textBox.ScrollBars = ScrollBars.Vertical;
-            
-            _textBox.GotFocus += OnTextFocus;
             _textBox.TextChanged += OnTextChanged;
-            _textBox.LostFocus += OnTextUnfocus;
 
-            _textBoxLabel = new Label();
-            _textBoxLabel.Enabled = false;
-            _textBoxLabel.Text = "Type a message...";
-
-            _textBox.Controls.Add(_textBoxLabel);
+            _textBox.PlaceholderText = "Type a message...";
+            
+            _textBox.KeyDown += OnKeyDown;
+            _textBox.KeyUp += OnKeyUp;
 
             Controls.Add(_textBox);
 
             _sendButton = new Button();
             _sendButton.Location = new Point(902, 662);
             _sendButton.Size = new Size(120, 104);
-            _sendButton.Text = "Send";
+            _sendButton.Text = "Send\nCtrl + Enter";
             _sendButton.Click += OnSendClick;
             _sendButton.Enabled = false;
 
@@ -66,14 +57,6 @@ namespace MessagingApp
 
             _network = network;
             _network.Start(OnMessageReceived);
-        }
-
-        private void OnTextFocus(object? sender, EventArgs e)
-        {
-            if (sender == null)
-                return;
-
-            _textBoxLabel.Visible = false;
         }
 
         private void OnTextChanged(object? sender, EventArgs e)
@@ -86,14 +69,25 @@ namespace MessagingApp
             _sendButton.Enabled = !string.IsNullOrWhiteSpace(textBox.Text);
         }
 
-        private void OnTextUnfocus(object? sender, EventArgs e)
+        private void OnKeyDown(object? sender, KeyEventArgs e)
         {
-            if (sender == null)
-                return;
+            if ((e.KeyData & Keys.Control) == Keys.Control)
+                e.SuppressKeyPress = true;
+        }
 
-            TextBox textBox = (TextBox)sender;
+        private void OnKeyUp(object? sender, KeyEventArgs e)
+        {
+            Debug.WriteLine(e.KeyData);
 
-            _textBoxLabel.Visible = string.IsNullOrEmpty(textBox.Text);
+            if (e.KeyData == (Keys.Return | Keys.Control))
+            {
+                Debug.WriteLine($"Enabled: {_sendButton.Enabled}");
+
+                e.SuppressKeyPress = true;
+
+                if(_sendButton.Enabled)
+                    _sendButton.PerformClick();
+            }
         }
 
         private void OnSendClick(object? sender, EventArgs e)

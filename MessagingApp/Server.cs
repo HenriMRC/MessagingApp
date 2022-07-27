@@ -196,7 +196,7 @@ namespace MessagingApp
                     int length = _stream.EndRead(result);
 
                     byte[] buffer = result.AsyncState as byte[];
-                    string message = Encoding.ASCII.GetString(buffer, 0, buffer.Length);
+                    string message = Encoder.GetString(buffer, 0, buffer.Length);
 
                     _onReadCallback.Invoke(_clientID, message);
 
@@ -210,7 +210,7 @@ namespace MessagingApp
 
             internal void Write(int senderID, string message)
             {
-                byte[] messageBytes = Encoding.ASCII.GetBytes(message);
+                byte[] messageBytes = Encoder.GetBytes(message);
                 List<byte> buffer = new List<byte>(2 * sizeof(int) + messageBytes.Length);
 
                 buffer.AddRange(BitConverter.GetBytes(messageBytes.Length));
