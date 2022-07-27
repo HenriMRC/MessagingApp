@@ -41,7 +41,6 @@ namespace MessagingApp
 
             _textBox.PlaceholderText = "Type a message...";
             
-            _textBox.KeyDown += OnKeyDown;
             _textBox.KeyUp += OnKeyUp;
 
             Controls.Add(_textBox);
@@ -69,20 +68,10 @@ namespace MessagingApp
             _sendButton.Enabled = !string.IsNullOrWhiteSpace(textBox.Text);
         }
 
-        private void OnKeyDown(object? sender, KeyEventArgs e)
-        {
-            if ((e.KeyData & Keys.Control) == Keys.Control)
-                e.SuppressKeyPress = true;
-        }
-
         private void OnKeyUp(object? sender, KeyEventArgs e)
         {
-            Debug.WriteLine(e.KeyData);
-
             if (e.KeyData == (Keys.Return | Keys.Control))
             {
-                Debug.WriteLine($"Enabled: {_sendButton.Enabled}");
-
                 e.SuppressKeyPress = true;
 
                 if(_sendButton.Enabled)
