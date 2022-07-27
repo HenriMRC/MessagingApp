@@ -49,7 +49,7 @@ namespace MessagingApp
             _sendButton = new Button();
             _sendButton.Location = new Point(902, 662);
             _sendButton.Size = new Size(120, 104);
-            _sendButton.Text = "Send\nCtrl + Enter";
+            _sendButton.Text = "Send\n(Ctrl + Enter)";
             _sendButton.Click += OnSendClick;
             _sendButton.Enabled = false;
 
